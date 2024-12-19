@@ -12,19 +12,21 @@ interface KnobsValues {
   attack: number;
   decay: number;
   sustain: number;
+  [key: string]: number; // インデックスシグネチャを追加
 }
 
 // Faders用の具体的な型定義
 interface FadersValues {
   volume: number;
   pan: number;
+  [key: string]: number; // インデックスシグネチャを追加
 }
 
 // SynthStateの型定義を修正
 interface SynthState {
   knobs: KnobsValues;
-  pads: { [key: string]: boolean };
-  buttons: { [key: string]: boolean };
+  pads: Record<number, boolean>; // 数値キーを許容
+  buttons: Record<number, boolean>; // 数値キーを許容
   faders: FadersValues;
 }
 
@@ -32,8 +34,8 @@ const App: React.FC = () => {
   // 全体の状態管理を具体的な型で初期化
   const [synthState, setSynthState] = useState<SynthState>({
     knobs: { attack: 20, decay: 40, sustain: 60 },
-    pads: {}, // 必要に応じて初期値を設定
-    buttons: {}, // 必要に応じて初期値を設定
+    pads: {}, // 初期値を必要に応じて設定
+    buttons: {}, // 初期値を必要に応じて設定
     faders: { volume: 50, pan: 75 }
   });
 
@@ -46,7 +48,7 @@ const App: React.FC = () => {
   };
 
   // パッドの状態が変更されたときのハンドラ
-  const handlePadChange = (padId: string, isActive: boolean) => {
+  const handlePadChange = (padId: number, isActive: boolean) => { // padId を number に変更
     setSynthState(prev => ({
       ...prev,
       pads: { ...prev.pads, [padId]: isActive }
@@ -54,7 +56,7 @@ const App: React.FC = () => {
   };
 
   // ボタンの状態が変更されたときのハンドラ
-  const handleButtonChange = (buttonId: string, isActive: boolean) => {
+  const handleButtonChange = (buttonId: number, isActive: boolean) => { // buttonId を number に変更
     setSynthState(prev => ({
       ...prev,
       buttons: { ...prev.buttons, [buttonId]: isActive }
@@ -62,7 +64,7 @@ const App: React.FC = () => {
   };
 
   // フェーダーの値が変更されたときのハンドラ
-  const handleFaderChange = (faderId: keyof FadersValues, value: number) => {
+  const handleFaderChange = (faderId: string, value: number) => { // faderId を string に変更
     setSynthState(prev => ({
       ...prev,
       faders: { ...prev.faders, [faderId]: value }
