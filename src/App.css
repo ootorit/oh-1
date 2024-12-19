@@ -1,0 +1,110 @@
+/* src/App.css */
+
+.grid-wrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000000;
+  overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.grid-container {
+  display: grid;
+  /* 画面の横幅と縦幅の4/3倍を比較して、小さい方を選択 */
+  width: min(100vw, calc(100vh * 4/3));
+  height: min(100vh, calc(100vw * 3/4));
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-areas:
+    "visualizer visualizer knobs knobs"
+    "pads pads buttons faders"
+    "pads pads buttons faders";
+  gap: 1px;
+  padding: 1px;
+  box-sizing: border-box;
+  background-color: #000000;
+  color: rgb(255, 255, 255);
+}
+
+.grid-item {
+  border: 1px solid rgb(255, 255, 255);
+  box-sizing: border-box;
+  padding: 10px;
+  background-color: transparent;
+  min-width: 0;  /* グリッドアイテムのはみ出しを防ぐ */
+  min-height: 0; /* グリッドアイテムのはみ出しを防ぐ */
+}
+
+.visualizer { grid-area: visualizer; }
+.knobs { grid-area: knobs; }
+.pads { grid-area: pads; }
+.buttons { grid-area: buttons; }
+.faders { grid-area: faders; }
+
+/* スライダーのスタイル */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px;
+  cursor: pointer;
+  background: rgb(255, 255, 255);
+  border-radius: 1px;
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 2px;
+  cursor: pointer;
+  background: rgb(255, 255, 255);
+  border-radius: 1px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  margin-top: -7px;
+  border: 1px solid rgb(255, 255, 255);
+}
+
+input[type=range]::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  border: 1px solid rgb(255, 255, 255);
+}
+
+/* レスポンシブ対応 */
+@media (max-aspect-ratio: 4/3) {
+  .grid-container {
+    width: 100vw;
+    height: calc(100vw * 3/4);
+  }
+}
+
+@media (min-aspect-ratio: 4/3) {
+  .grid-container {
+    width: calc(100vh * 4/3);
+    height: 100vh;
+  }
+}
