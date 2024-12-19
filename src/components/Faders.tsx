@@ -7,7 +7,7 @@ interface FaderProps {
   label: string;
 }
 
-const Fader: React.FC<FaderProps> = ({ id, value, onChange, label }) => {
+const Fader: React.FC<FaderProps> = ({ value, onChange, label }) => {
   const faderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 

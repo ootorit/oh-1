@@ -1,7 +1,14 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 
-const Knob = ({ label, value, onChange }) => {
-  const knobRef = useRef(null);
+// KnobコンポーネントのPropsインターフェースを定義
+interface KnobProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const Knob: React.FC<KnobProps> = ({ label, value, onChange }) => {
+  const knobRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const rotationRef = useRef((value / 100) * 270 - 135);
   const startYRef = useRef(0);
@@ -16,14 +23,16 @@ const Knob = ({ label, value, onChange }) => {
     }
   }, [value]);
 
-  const handleMouseDown = useCallback((e) => {
+  // マウスダウンイベントの型を指定
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
     isDraggingRef.current = true;
     startYRef.current = e.clientY;
     startValueRef.current = value;
   }, [value]);
 
-  const handleMouseMove = useCallback((e) => {
+  // マウスムーブイベントの型を指定
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDraggingRef.current) return;
 
     const deltaY = startYRef.current - e.clientY;
@@ -32,10 +41,13 @@ const Knob = ({ label, value, onChange }) => {
     const newValue = Math.min(Math.max(startValueRef.current + valueDelta, 0), 100);
     
     rotationRef.current = (newValue / 100) * 270 - 135;
-    knobRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
+    if (knobRef.current) {
+      knobRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
+    }
     onChange(Math.round(newValue));
   }, [onChange]);
 
+  // マウスアップイベントの型を指定
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
   }, []);
@@ -101,7 +113,17 @@ const Knob = ({ label, value, onChange }) => {
   );
 };
 
-const Knobs = ({ values, onChange }) => {
+// KnobsコンポーネントのPropsインターフェースを定義
+interface KnobsProps {
+  values: {
+    attack: number;
+    decay: number;
+    sustain: number;
+  };
+  onChange: (parameter: keyof KnobsProps['values'], value: number) => void;
+}
+
+const Knobs: React.FC<KnobsProps> = ({ values, onChange }) => {
   return (
     <div style={{
       display: 'grid',
