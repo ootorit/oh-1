@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 
-// KnobコンポーネントのPropsインターフェースを定義
+// イベントハンドラーの型定義
+type TouchEventHandler = (event: TouchEvent) => void;
+type MouseEventHandler = (event: MouseEvent) => void;
+
 interface KnobProps {
   label: string;
   value: number;
@@ -23,19 +26,16 @@ const Knob: React.FC<KnobProps> = ({ label, value, onChange }) => {
     }
   }, [value]);
 
-  // マウスダウンイベントの型を指定
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
+  const handleStart = useCallback((clientY: number) => {
     isDraggingRef.current = true;
-    startYRef.current = e.clientY;
+    startYRef.current = clientY;
     startValueRef.current = value;
   }, [value]);
 
-  // マウスムーブイベントの型を指定
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMove = useCallback((clientY: number) => {
     if (!isDraggingRef.current) return;
 
-    const deltaY = startYRef.current - e.clientY;
+    const deltaY = startYRef.current - clientY;
     const sensitivity = 0.5;
     const valueDelta = deltaY * sensitivity;
     const newValue = Math.min(Math.max(startValueRef.current + valueDelta, 0), 100);
@@ -47,20 +47,61 @@ const Knob: React.FC<KnobProps> = ({ label, value, onChange }) => {
     onChange(Math.round(newValue));
   }, [onChange]);
 
-  // マウスアップイベントの型を指定
-  const handleMouseUp = useCallback(() => {
+  const handleEnd = useCallback(() => {
     isDraggingRef.current = false;
   }, []);
 
-  useEffect(() => {
+  // マウスイベントハンドラー
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    handleStart(e.clientY);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  }, [handleStart]);
+
+  const handleMouseMove = useCallback<MouseEventHandler>((e) => {
+    handleMove(e.clientY);
+  }, [handleMove]);
+
+  const handleMouseUp = useCallback(() => {
+    handleEnd();
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleEnd, handleMouseMove]);
+
+  useEffect(() => {
+    const knob = knobRef.current;
+    if (!knob) return;
+
+    const touchStartHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleStart(touch.clientY);
+    };
+
+    const touchMoveHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientY);
+    };
+
+    const touchEndHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      handleEnd();
+    };
+
+    knob.addEventListener('touchstart', touchStartHandler);
+    knob.addEventListener('touchmove', touchMoveHandler);
+    knob.addEventListener('touchend', touchEndHandler);
 
     return () => {
+      knob.removeEventListener('touchstart', touchStartHandler);
+      knob.removeEventListener('touchmove', touchMoveHandler);
+      knob.removeEventListener('touchend', touchEndHandler);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleStart, handleMove, handleEnd, handleMouseMove, handleMouseUp]);
 
   return (
     <div style={{
@@ -82,21 +123,21 @@ const Knob: React.FC<KnobProps> = ({ label, value, onChange }) => {
           borderRadius: '50%',
           transform: `rotate(${rotationRef.current}deg)`,
           cursor: 'pointer',
-          backgroundColor: 'transparent'
+          backgroundColor: 'transparent',
+          touchAction: 'none',
+          userSelect: 'none'
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            width: '1px',
-            height: '20px',
-            backgroundColor: 'rgb(255, 255, 255)',
-            top: '4px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            transformOrigin: 'bottom',
-          }}
-        />
+        <div style={{
+          position: 'absolute',
+          width: '1px',
+          height: '20px',
+          backgroundColor: 'rgb(255, 255, 255)',
+          top: '4px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          transformOrigin: 'bottom'
+        }} />
       </div>
       <div style={{ 
         color: 'rgb(255, 255, 255)',
@@ -113,7 +154,6 @@ const Knob: React.FC<KnobProps> = ({ label, value, onChange }) => {
   );
 };
 
-// KnobsコンポーネントのPropsインターフェースを定義
 interface KnobsProps {
   values: {
     attack: number;

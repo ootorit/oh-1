@@ -1,4 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
+
+// イベントハンドラーの型定義
+type TouchEventHandler = (event: TouchEvent) => void;
+type MouseEventHandler = (event: MouseEvent) => void;
 
 interface FaderProps {
   id: string;
@@ -9,46 +13,83 @@ interface FaderProps {
 
 const Fader: React.FC<FaderProps> = ({ value, onChange, label }) => {
   const faderRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
+  const handleRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current || !faderRef.current) return;
-      
-      const rect = faderRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const height = rect.height;
-      const percentage = 100 - (y / height * 100);
-      const clampedValue = Math.min(Math.max(percentage, 0), 100);
-      
-      onChange(Math.round(clampedValue));
-    };
-
-    const handleMouseUp = () => {
-      isDragging.current = false;
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [onChange]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!faderRef.current) return;
-    
-    isDragging.current = true;
+  const calculateValue = useCallback((clientY: number) => {
+    if (!faderRef.current) return value;
     const rect = faderRef.current.getBoundingClientRect();
-    const y = e.clientY - rect.top;
+    const y = clientY - rect.top;
     const height = rect.height;
     const percentage = 100 - (y / height * 100);
-    const clampedValue = Math.min(Math.max(percentage, 0), 100);
-    
-    onChange(Math.round(clampedValue));
-  };
+    return Math.min(Math.max(percentage, 0), 100);
+  }, [value]);
+
+  const handleStart = useCallback((clientY: number) => {
+    isDraggingRef.current = true;
+    const newValue = calculateValue(clientY);
+    onChange(Math.round(newValue));
+  }, [calculateValue, onChange]);
+
+  const handleMove = useCallback((clientY: number) => {
+    if (!isDraggingRef.current) return;
+    const newValue = calculateValue(clientY);
+    onChange(Math.round(newValue));
+  }, [calculateValue, onChange]);
+
+  const handleEnd = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    handleStart(e.clientY);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [handleStart]);
+
+  const handleMouseMove = useCallback<MouseEventHandler>((e) => {
+    handleMove(e.clientY);
+  }, [handleMove]);
+
+  const handleMouseUp = useCallback(() => {
+    handleEnd();
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleEnd, handleMouseMove]);
+
+  useEffect(() => {
+    const fader = faderRef.current;
+    if (!fader) return;
+
+    const touchStartHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleStart(touch.clientY);
+    };
+
+    const touchMoveHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleMove(touch.clientY);
+    };
+
+    const touchEndHandler: TouchEventHandler = (e) => {
+      e.preventDefault();
+      handleEnd();
+    };
+
+    fader.addEventListener('touchstart', touchStartHandler);
+    fader.addEventListener('touchmove', touchMoveHandler);
+    fader.addEventListener('touchend', touchEndHandler);
+
+    return () => {
+      if (!fader) return;
+      fader.removeEventListener('touchstart', touchStartHandler);
+      fader.removeEventListener('touchmove', touchMoveHandler);
+      fader.removeEventListener('touchend', touchEndHandler);
+    };
+  }, [handleStart, handleMove, handleEnd]);
 
   return (
     <div style={{
@@ -56,10 +97,12 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, label }) => {
       flexDirection: 'column',
       alignItems: 'center',
       height: '100%',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      touchAction: 'none'
     }}>
       <div 
         ref={faderRef}
+        onMouseDown={handleMouseDown}
         style={{
           flex: 1,
           width: '4px',
@@ -68,9 +111,9 @@ const Fader: React.FC<FaderProps> = ({ value, onChange, label }) => {
           cursor: 'pointer',
           margin: '20px 0'
         }}
-        onMouseDown={handleMouseDown}
       >
         <div
+          ref={handleRef}
           style={{
             width: '20px',
             height: '20px',
